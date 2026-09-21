@@ -55,6 +55,9 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
  border:1px solid var(--line);padding:5px 7px}
 .audiobar input[type=range]{width:96px;margin:0;height:18px}
 .audiobar .note{font-size:11px;color:var(--faint);margin-left:auto}
+.sndwarn{font-size:11.5px;font-weight:600;color:#F2C879;background:#3A2E18;
+ border:1px solid var(--pre);padding:5px 9px;border-radius:3px}
+.sndwarn[hidden]{display:none}
 .sndon{color:var(--pre)}
 
 /* 3개 칸을 같은 높이로 늘리고, 발화 위치 칸을 넓혀 동·층 선택을 크게 보여준다 */
@@ -85,7 +88,17 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .cell.sel{background:#3A4A57;border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .cell.alarm{background:rgba(222,59,44,.32);border-color:var(--fire)}
 .cell.prealarm{background:rgba(224,163,60,.26);border-color:var(--pre)}
-.cell.sht::before{content:"";position:absolute;left:2px;right:2px;top:2px;height:5px;background:var(--key)}
+/* 방화셔터 하강 애니메이션 — 슬랫(가로줄) 질감의 셔터가 천장에서부터
+   실제로 내려오듯, 위에서부터 채워지는 막대로 표현한다.
+   1차(부분)는 절반까지, 2차(완전폐쇄)는 끝까지 채워진다.
+   높이는 render() 에서 JS로 지정하고, 여기서는 전환 애니메이션만 정의한다. */
+.cell .shtbar{position:absolute;left:0;right:0;top:0;height:0%;overflow:hidden;
+ background:repeating-linear-gradient(to bottom,var(--key) 0 3px,#C4691F 3px 4px);
+ box-shadow:inset 0 -3px 5px rgba(0,0,0,.45);
+ transition:height 1.05s cubic-bezier(.22,.7,.3,1);pointer-events:none}
+.cell .shtbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+ background:#FFDCA8;box-shadow:0 0 5px 1px rgba(255,220,168,.85)}
+.cell .shtbar[data-stage="2"]{box-shadow:inset 0 -3px 5px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,133,119,.7)}
 .cell.origin{background:var(--fire);border-color:#FF8577}
 .cell.origin::after{content:"";position:absolute;inset:5px;border:2px solid #fff;opacity:.9}
 .usekey{margin-top:10px;font-size:11.5px;color:var(--faint);line-height:1.6}
@@ -162,6 +175,7 @@ li.off .dev small{color:#4E606F}
 li.off .tag{background:transparent;color:var(--faint);border:1px solid var(--halt)}
 li.off .stepno{color:#4E606F}
 @media (prefers-reduced-motion:reduce){li.on .led,li.on .tag{animation:none}}
+@media (prefers-reduced-motion:reduce){.cell .shtbar{transition:none}}
 li.pending{opacity:.14}
 li.key4{box-shadow:inset 3px 0 0 var(--key)}
 .k4{display:inline-block;font-size:9.5px;color:var(--key);border:1px solid var(--key);
@@ -179,11 +193,40 @@ li.key4{box-shadow:inset 3px 0 0 var(--key)}
 .sop li:last-child{border-bottom:0}
 .sop .t{font-family:"IBM Plex Mono",monospace;color:var(--cool);font-size:12px}
 .hint{font-size:12.5px;color:var(--dim);margin:0 0 11px;line-height:1.55}
-.cfggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:3px 16px}
-.cfggrid label{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:4px 0;cursor:pointer;line-height:1.35}
-.cfggrid input{margin:3px 0 0;accent-color:var(--ok);flex:0 0 auto}
-.cfggrid label:has(input:not(:checked)) span{color:var(--faint)}
-.cfggrid label.k span{color:var(--key)}
+/* ---------- 방재실 수신기 연동정지(출력차단) 조작반 재현 ----------
+   버튼 배열·명칭은 현장 수신기 조작반 실물 기준. 녹색 LED = 연동 정상,
+   적색 LED = 연동정지(출력차단). 회색 = 이 시뮬레이터 미반영 출력. */
+.rcvgrp{margin-bottom:13px}
+.rcvgrp:last-child{margin-bottom:0}
+.rcvgrp h3{font-size:11px;font-weight:600;color:var(--faint);letter-spacing:.04em;margin:0 0 7px}
+.rcvpanel{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.rbtn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:1px;min-height:62px;padding:12px 4px 6px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);
+ background:var(--panel2);border:1px solid var(--line);border-radius:4px;cursor:pointer;
+ text-align:center;line-height:1.2}
+.rbtn .rled{position:absolute;top:6px;left:7px;width:8px;height:8px;border-radius:50%;
+ background:var(--ok);box-shadow:0 0 5px rgba(47,163,95,.8)}
+.rbtn .rsub{font-size:9.5px;font-weight:400;color:var(--faint)}
+.rbtn .rstate{font-size:9.5px;font-weight:600;color:var(--ok);letter-spacing:.02em;margin-top:2px}
+.rbtn[aria-pressed="true"]{background:#1A232C;border-color:#2E3A44;color:var(--faint)}
+.rbtn[aria-pressed="true"] .rled{background:var(--fire);box-shadow:0 0 5px rgba(222,59,44,.8)}
+.rbtn[aria-pressed="true"] .rstate{color:var(--fire)}
+.rbtn[aria-pressed="true"] .rsub{color:#4A5B6B}
+.rbtn.key{box-shadow:inset 0 -3px 0 var(--key)}
+.rbtn.key .rname{color:var(--key)}
+.rbtn.lock{cursor:default;border-color:var(--ok);background:#1D2E27}
+.rbtn.na{cursor:default;background:#181F27;border-color:#252E37;color:#4A5B6B;font-weight:500}
+.rbtn.na .rled{background:#38424C;box-shadow:none}
+.rbtn.na .rstate,.rbtn.na .rsub{color:#3B4854}
+.rfill{min-height:62px;border:1px dashed #232C35;border-radius:4px}
+.rcvlegend{display:flex;flex-wrap:wrap;gap:12px;margin-top:11px;padding-top:10px;
+ border-top:1px solid var(--line);font-size:11.5px;color:var(--faint)}
+.rcvlegend span{display:flex;align-items:center;gap:5px}
+.rcvlegend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+@media (max-width:1080px){.rcvpanel{grid-template-columns:repeat(5,minmax(0,1fr))}.rfill{display:none}}
+@media (max-width:860px){.rcvpanel{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:620px){.rcvpanel{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:380px){.rcvpanel{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .verify{border-left:3px solid var(--verify)}
 .verify ul{margin:0;padding-left:18px;font-size:12.5px;color:var(--dim);line-height:1.65}
 .verify li{margin-bottom:5px}
@@ -216,8 +259,7 @@ input[type=range]{touch-action:none}
   .ctl button{padding:11px}
   .bigbtn{padding:15px}
   input[type=range]{height:30px}
-  .cfggrid{grid-template-columns:1fr}
-  .cfggrid label{padding:7px 0}
+  .rbtn{min-height:58px;font-size:12px;padding:12px 3px 6px}
   ol.out li{grid-template-columns:11px 20px minmax(0,1fr) auto;padding:10px 9px}
   .sop li{grid-template-columns:1fr;gap:2px}
   .sop .t{font-weight:600}
@@ -259,9 +301,11 @@ input[type=range]{touch-action:none}
 <header>
   <h1>원그로브 화재시 소방시설 연동로직 체험 시뮬레이터</h1>
   <p class="sub">동·층을 고르고 입력설비를 동작시키면 출력 연동을 확인할 수 있습니다. 연동해제 최종검토 대상 4대설비(방화셔터 · 프리액션/드렌처 · 거실제연 · 공조대표화재)는 주황 표시로 구분됩니다.</p>
-  <div class="modes" role="group" aria-label="운영 모드">
-    <button data-mode="normal" aria-pressed="true">전체 정상 (연동정지 없음)</button>
-    <button data-mode="night" aria-pressed="false">주간 일부정지 (4대설비 연동정지)</button>
+  <div class="modes" role="group" aria-label="운영 모드 — 연동해제 단계">
+    <button data-mode="now" aria-pressed="false" title="방재실 수신기의 현재 상태 — 야간(23:00~08:00)에 비상방송·지구벨·싸이렌·배연창·방화문·소화설비·전실댐퍼·유도등 연동 정상">1단계 · 야간 현행 (23:00~08:00)</button>
+    <button data-mode="night2" aria-pressed="false" title="야간 시간대에 4대설비(방화셔터·프리액션/드렌처·거실제연·공조대표화재)만 연동정지로 남기고 나머지 전부 정상연동">2단계 · 야간 확대 (4대설비만 연동정지)</button>
+    <button data-mode="day" aria-pressed="false" title="같은 구성을 주간 영업시간까지 확대 — 전 설비 정상화 직전 단계">3단계 · 주간 영업시간 적용 (08:00~23:00)</button>
+    <button data-mode="normal" aria-pressed="true" title="4대설비까지 연동을 되살린 최종 정상화 상태">4단계 · 전 설비 정상화</button>
     <button data-mode="custom" aria-pressed="false">직접 설정</button>
   </div>
 
@@ -274,7 +318,7 @@ input[type=range]{touch-action:none}
       <div class="dongs"><span></span><span>A</span><span>B</span><span>C</span><span>D</span></div>
       <div class="stack" id="stack"></div>
       <div class="here" id="here"></div>
-      <div class="usekey">지상 3F~11F 오피스 · 2F~B2 판매시설 · B3~B7 주차장<br><i></i>주황 표시 = 방화셔터 출력 구역</div>
+      <div class="usekey">지상 3F~11F 오피스 · 2F~B2 판매시설 · B3~B7 주차장<br><i></i>주황 셔터 표시 = 방화셔터 출력 구역 (위에서 내려오는 만큼이 진행 정도 — 중간까지는 1차 부분폐쇄, 끝까지는 2차 완전폐쇄)</div>
     </div>
   </section>
 
@@ -305,17 +349,31 @@ input[type=range]{touch-action:none}
 
 <div class="stackrow">
 <section class="box">
-  <h2>연동정지 설정</h2>
+  <h2>소방설비 연동설정 <em>방재실 수신기 조작반 기준</em></h2>
   <div class="body">
-    <p class="hint">기본값은 <b>전 설비 정상(연동정지 없음)</b>입니다. 체크박스를 누르면 그 설비에 <b>연동정지</b>가 걸려 화재신호가 와도 동작하지 않습니다. <b style="color:var(--key)">주황색</b>이 연동해제 최종검토 대상 설비이며, 프리액션과 드렌처는 조작반 버튼이 하나로 묶여 있어 함께 잡힙니다.</p>
-    <div class="cfggrid" id="cfg"></div>
+    <p class="hint">방재실 <b>화재수신기 연동정지(출력차단) 조작반</b>의 버튼 명칭과 배열을 그대로 옮겼습니다. 버튼을 누르면 그 설비에 <b>연동정지</b>가 걸려(적색) 화재신호가 와도 동작하지 않고, 다시 누르면 정상연동(녹색)으로 돌아옵니다. 프리액션과 드렌처는 조작반 버튼이 하나로 묶여 있어 함께 잡히고, 방화셔터도 1·2차 기동이 한 버튼입니다. <b>소화설비(소화펌프)는 연동정지를 이미 해제해 상시 정상운영</b> 중이므로 정지할 수 없도록 잠가 두었습니다.</p>
+    <p class="hint">화면 상단의 단계 버튼으로 <b>1단계 야간 현행(23:00~08:00) → 2단계 야간 확대(4대설비만 연동정지) → 3단계 주간 영업시간 확대(08:00~23:00) → 4단계 전 설비 정상화</b> 순서를 그대로 불러올 수 있습니다. 2·3단계는 연동정지 설비 구성(방화셔터 · 프리액션/드렌처 · 거실제연 · 공조대표화재)이 같고 <b>적용 시간대만 다릅니다</b>.</p>
+    <div class="rcvgrp">
+      <h3>연동정지 조작반 (출력차단)</h3>
+      <div class="rcvpanel" id="cfg"></div>
+    </div>
+    <div class="rcvgrp">
+      <h3>수신기 조작부 — 별도 스위치</h3>
+      <div class="rcvpanel" id="cfg2"></div>
+    </div>
+    <div class="rcvlegend">
+      <span><i style="background:var(--ok)"></i>녹색 = 연동 정상</span>
+      <span><i style="background:var(--fire)"></i>적색 = 연동정지(출력차단)</span>
+      <span><i style="background:#38424C"></i>회색 = 이 시뮬레이터 미반영 출력</span>
+      <span><i style="background:var(--key)"></i>주황 = 연동해제 최종검토 4대설비</span>
+    </div>
   </div>
 </section>
 
 <div class="audiobar">
   <span class="barlabel">음향송출줄</span>
   <button id="sndBtn" aria-pressed="true">🔊 음향 켜짐</button>
-  <label>음량 <input type="range" id="vol" min="0" max="100" value="45" aria-label="음량"></label>
+  <label>음량 <input type="range" id="vol" min="0" max="100" value="60" aria-label="음량"></label>
   <label>방송 선택
     <select id="script">
       <option value="nonfire">비화재 안내방송</option>
@@ -326,6 +384,7 @@ input[type=range]{touch-action:none}
   <button id="broadcastBtn" class="bcast">▶ 송출</button>
   <button id="stopSnd">음향 정지</button>
   <button id="recoverBtn" class="recov">↺ 복구</button>
+  <span class="sndwarn" id="sndwarn" role="status" hidden>🔇 브라우저가 소리를 막고 있습니다 — 화면을 한 번 누르면 송출됩니다</span>
   <span class="note">주경종·지구경종·비상방송은 연동정지가 없으면 화재신호와 동시에 자동 송출되고, 연동정지를 걸면 멈춥니다. 싸이렌(유수검지장치·가스계 연동) 구동 시 지구경종도 함께 명동합니다. 비상방송(화재시 안내방송)은 <b>실제 녹음(사이렌 5초+멘트+사이렌 5초)</b>을 다른 방송보다 높은 음량으로 반복 송출해 구분됩니다. 안내방송 3종은 [송출]을 누를 때만 나갑니다. [복구]는 화재신호를 발생 전 평상시 감시상태로 되돌립니다.</span>
 </div>
 
@@ -350,16 +409,19 @@ input[type=range]{touch-action:none}
       <li><b>공조대표화재의 AHU 묶음 범위</b> — 어느 감지기가 어느 AHU를 정지시키는지 계통도 대조 필요. 묶음 범위에 따라 피해등급 상향 가능.</li>
       <li><b>설비자동제어(판매·마트) 수동복구 필요 여부</b> — 자동복구 불가 시 AHU 재기동 소요 증가.</li>
       <li><b>거실제연·전실제연 수동조작함 조작 시 화재신호 성립 여부</b> — 현재는 설비만 기동하고 경보는 미발생으로 구현.</li>
+      <li><b>거실제연 수동조작함(SVP)의 셔터 연동 여부</b> — 거실제연 감지기(자동)는 셔터 1차 연동을 반영했으나, 수동조작함은 사람이 직접 조작하는 계통이라 셔터 자동연동에서 제외했습니다. 실제로 수동조작 시에도 셔터가 연동되는지 확인 필요.</li>
       <li><b>발신기 신호의 방화셔터 연동 여부</b> — 일반 자탐 화재신호와 동일하게 처리되는지 미확인.</li>
       <li><b>주차장 패시브휀</b> — A·B구역 배기 / C·D구역 급기 교대 기동의 연동정지 포함 여부 미확인.</li>
       <li><b>설비별 지연시간</b> — 실제 지연초 미상이라 순서(Step)만 표시. 실동시험 실측 필요.</li>
+      <li><b>조작반 버튼과 출력설비의 대응</b> — 가스출력은 가스계 약제방출·해당구역 공조정지/댐퍼폐쇄로, 제연댐퍼·제연급기휀·제연배기휀은 거실제연 계통으로, 전실댐퍼·전실급기휀·전실배기휀은 전실제연 계통으로 대응시켰습니다. 실제 결선 기준 확인 필요.</li>
+      <li><b>미반영 출력(회색 버튼)</b> — 제연커텐·자동문·대표화재·조명제어·출입통제·속보기·에어컨정지·미디어·A/B출력은 설치 여부와 연동조건이 확인되지 않아 연동로직에서 제외했습니다. 확인 후 반영 필요.</li>
     </ul>
   </div>
 </section>
 </div>
 
 <footer>
-아날로그 임계값: 연기 예비경보 15% / 화재점 17%, 열 예비경보 60℃ / 화재점 80℃ (GFS F3G). 경보방식: 발화층 및 직상 4개층 우선경보 — 지상 2층 이상 발화 시 발화층+직상 4개층, 1층 발화 시 발화층+직상 4개층+지하 전층, 지하층 발화 시 발화층+직상층+기타 지하 전층. 방화셔터 1차기동 출력범위: 지상 3~11층·지하 3~7층 해당 셔터 개별 / 지상 1~2층 동 그룹 / 지하 1~2층 전동 일괄, 2차기동은 전 층 해당 셔터 개별. 싸이렌은 자탐 화재신호 연동 출력이 아니며, 유수검지장치(알람밸브·프리액션·드렌처) 발신 시 또는 가스계 소화설비 기동 시에만 동작합니다 — 자탐 지구음향장치는 지구경종입니다. 교육용 재현이며 실제 동작 시간과 다를 수 있습니다.
+아날로그 임계값: 연기 예비경보 15% / 화재점 17%, 열 예비경보 60℃ / 화재점 80℃ (GFS F3G). 경보방식: 발화층 및 직상 4개층 우선경보 — 지상 2층 이상 발화 시 발화층+직상 4개층, 1층 발화 시 발화층+직상 4개층+지하 전층, 지하층 발화 시 발화층+직상층+기타 지하 전층. 방화셔터 1차기동 출력범위: 지상 3~11층·지하 3~7층 해당 셔터 개별 / 지상 1~2층 동 그룹 / 지하 1~2층 전동 일괄, 2차기동은 전 층 해당 셔터 개별. 싸이렌은 자탐 화재신호 연동 출력이 아니며, 유수검지장치(알람밸브·프리액션·드렌처) 발신 시 또는 가스계 소화설비 기동 시에만 동작합니다 — 자탐 지구음향장치는 지구경종입니다. 「소방설비 연동설정」 칸의 버튼 명칭·배열은 방재실 화재수신기 연동정지(출력차단) 조작반 실물 기준이며, 소화설비(소화펌프)는 연동정지를 해제해 상시 정상운영 중이므로 정지 조작 대상에서 제외했습니다. 교육용 재현이며 실제 동작 시간과 다를 수 있습니다.
 </footer>
 </div>
 
@@ -406,16 +468,18 @@ function scopeText(f,d){
 
 /* ---------- 방화셔터 출력범위 ---------- */
 function shutter1(f,d){
-  if(f==="B1"||f==="B2") return {cells:DONGS.map(x=>f+x),label:"A·B·C·D 전동 일괄"};
+  if(f==="B1"||f==="B2") return {cells:DONGS.map(x=>f+x),label:"A·B·C·D 전동 일괄",stage:1};
   if(f==="1F"||f==="2F"){const g=(d==="A"||d==="B")?["A","B"]:["C","D"];
-    return {cells:g.map(x=>f+x),label:g.join("+")+"동 그룹 출력"};}
-  return {cells:[f+d],label:"해당 셔터 개별"};
+    return {cells:g.map(x=>f+x),label:g.join("+")+"동 그룹 출력",stage:1};}
+  return {cells:[f+d],label:"해당 셔터 개별",stage:1};
 }
-function shutter2(f,d){ return {cells:[f+d],label:"해당 셔터 개별 (완전폐쇄)"}; }
+function shutter2(f,d){ return {cells:[f+d],label:"해당 셔터 개별 (완전폐쇄)",stage:2}; }
 /* 일반 자탐 화재신호가 셔터 1차를 유발하는 층 */
 const GEN_SHUTTER=["1F","2F","B1","B2"];
 
-/* ---------- 출력설비 ---------- */
+/* ---------- 출력설비 ----------
+   KEY4 = 연동해제 최종검토 대상 4대설비
+   ①방화셔터 ②프리액션/드렌처 ③거실제연설비(댐퍼·급기휀·배기휀) ④공조대표화재 */
 const KEY4=["sht1","sht2","preact","dren","rdmp","rexh","rsup","ahu"];
 const OUT={
  recv:{n:"수신기 화재표시 · 발신주소 표시",fixed:1},
@@ -444,16 +508,21 @@ const OUT={
  preact:{n:"프리액션 밸브 개방 · 2차측 충수"},
  dren:{n:"드렌처 일제살수"},
  drenz:{n:"해당 방수구역 개방형헤드 살수"},
- avs:{n:"유수검지장치 발신 · 밸브개방표시등 점등"},
- pump:{n:"소화펌프 기동"},
+ avs:{n:"유수검지장치 발신 · 밸브개방표시등 점등",fixed:1},
+ pump:{n:"소화펌프 기동",always:1},          /* 연동정지 해제 후 상시 정상운영 — 정지 대상 아님 */
  gasrel:{n:"가스계 약제 방출"},
  gasdmp:{n:"해당구역 공조정지 · 댐퍼 폐쇄"}
 };
-const ALL=Object.keys(OUT);
-/* 주간 일부정지에서 연동정지 상태인 설비 = 해제 최종검토 4대설비(엘리베이터 제외) */
-const HALT_NIGHT=["sht1","sht2","preact","dren","drenz","rdmp","rexh","rsup","ahu"];
 /* 프리액션·드렌처는 연동정지 버튼이 하나 — 함께 토글 */
 const PD_GROUP=["preact","dren","drenz"];
+/* 현행(야간 1단계) 기준 연동이 살아있는 설비 — 방재실 수신기 조작반 현재 상태
+   비상방송 · 지구벨 · 싸이렌 · 배연창 · 방화문 · 소화설비 · 전실댐퍼 · 유도등 (녹색)
+   주경종은 수신기 내장 음향이라 상시 정상 명동 기준으로 둔다. */
+const LIVE_NOW=["pag","bell","sir","swin","fdoor","vdmp","exit","mbell","pump"];
+/* 4대설비만 연동정지로 남기는 단계 — 야간 2단계에서 먼저 적용하고,
+   같은 구성을 주간 영업시간(08:00~23:00)까지 확대한 뒤 전 설비 정상화로 넘어간다.
+   드렌처 방수구역(drenz)은 프리액션과 조작반 버튼이 하나로 묶여 있어 함께 잡힌다. */
+const HALT_4=["sht1","sht2","preact","dren","drenz","rdmp","rexh","rsup","ahu"];
 
 /* ---------- 입력설비 ---------- */
 const ANY=()=>true;
@@ -465,15 +534,17 @@ const INPUTS=[
  {g:"자동화재탐지 (일반)",id:"call",name:"발신기",kind:"수동",mode:"binary",at:ANY,where:"전 층",
   desc:"누름스위치를 누르는 즉시 화재신호가 성립합니다. 예비경보 구간이 없어 확인할 시간이 주어지지 않습니다."},
 
- {g:"방화셔터 전용",id:"shs",name:"셔터 연기감지기",kind:"전용",mode:"binary",at:ANY,where:"셔터 설치구역 (전 층)",
-  desc:"해당 셔터를 1차(부분) 하강시키며, 일반 감지기와 동일하게 화재신호가 성립해 경보계통이 함께 동작합니다. 단 지하 2층에서는 1차기동을 유발하지 않고 2차기동만 일으킵니다."},
- {g:"방화셔터 전용",id:"shh",name:"셔터 정온식감지기",kind:"전용",mode:"binary",at:ANY,where:"셔터 설치구역 (전 층)",
-  desc:"해당 셔터를 2차(완전폐쇄)까지 하강시킵니다. 전 층 공통으로 해당 셔터만 개별 동작하며, 경보계통은 함께 성립합니다."},
+ {g:"방화셔터 전용",id:"shs",name:"셔터 연기감지기",kind:"아날로그",mode:"analog",
+  unit:"%",min:0,max:25,step:.5,pre:15,fire:17,init:0,at:ANY,where:"셔터 설치구역 (전 층)",
+  desc:"일반 연기감지기와 동일한 이중 임계값(예비 15% · 화재 17%)을 씁니다. 예비경보 구간에서는 주경종만 단독 명동하고, 화재점을 넘겨야 해당 셔터 1차(부분) 하강과 함께 일반 감지기와 동일한 경보계통이 성립합니다. 단 지하 2층에서는 1차기동을 유발하지 않고 2차기동만 일으킵니다."},
+ {g:"방화셔터 전용",id:"shh",name:"셔터 정온식감지기",kind:"아날로그",mode:"analog",
+  unit:"℃",min:20,max:100,step:1,pre:60,fire:80,init:20,at:ANY,where:"셔터 설치구역 (전 층)",
+  desc:"일반 열감지기와 동일한 이중 임계값(예비 60℃ · 화재 80℃)을 씁니다. 예비경보 구간에서는 주경종만 단독 명동하고, 화재점을 넘겨야 해당 셔터 2차(완전폐쇄)까지 하강하며 경보계통이 함께 성립합니다. 전 층 공통으로 해당 셔터만 개별 동작합니다."},
 
  {g:"거실제연 전용",id:"rsmk",name:"거실제연 감지기",kind:"아날로그",mode:"analog",
   unit:"%",min:0,max:25,step:.5,pre:15,fire:17,init:0,
   at:f=>SALES.includes(f),where:"지상 2층 ~ 지하 2층 판매시설층",
-  desc:"거실제연 전용 감지기입니다. 일반 자탐 화재신호와 별개로 이 감지기가 동작해야 거실제연설비가 연동됩니다."},
+  desc:"거실제연 전용 감지기입니다. 일반 자탐 화재신호와 별개로 이 감지기가 동작해야 거실제연설비가 연동되며, 판매시설층(지상 2층~지하 2층) 범위가 방화셔터 연동 대상층과 겹쳐 해당 셔터 1차(부분) 하강도 함께 유발합니다."},
  {g:"거실제연 전용",id:"svpr",name:"거실제연 수동조작함",kind:"수동",mode:"binary",
   at:f=>SALES.includes(f),where:"지상 2층 ~ 지하 2층 판매시설층",
   desc:"해당 동에 설정된 제연구역의 댐퍼를 열고 배기휀·급기휀을 기동합니다. 정상 공조가 즉시 차단됩니다."},
@@ -551,9 +622,15 @@ function compute(st){
     case "shh":
       return {lv:2,alarm:true,sht:shutter2(f,d),list:fireCascade(f,d,{shutter:2})};
 
+    /* 거실제연 감지기(rsmk)는 판매시설층(SALES = GEN_SHUTTER와 동일 범위)에만 설치되므로
+       일반 자탐과 동일한 셔터 1차 연동 규칙(1F·2F 동그룹 / B1·B2 전동일괄)을 그대로 적용한다.
+       거실제연 수동조작함(svpr)은 사람이 직접 조작하는 수동 계통이라 셔터 자동연동에서 제외한다. */
     case "rsmk": case "svpr":
-      return {lv:2,alarm:false,list:[
+      return {lv:2,alarm:false,
+        sht: I.id==="rsmk" ? shutter1(f,d) : null,
+        list:[
         {id: I.id==="svpr"?"svplamp":"recv", note: I.id==="svpr"?"거실제연 SVP 동작 표시":"거실제연 감지기 동작 표시"},
+        ...(I.id==="rsmk"?[{id:"sht1",note:"출력범위: "+shutter1(f,d).label}]:[]),
         {id:"rdmp",note:"해당 동에 설정된 제연구역 댐퍼 개방 — 정상 공조 차단"},
         {id:"rexh",note:"배기휀 기동"},
         {id:"rsup",note:"급기휀 기동 — 덕트 분진 비산, 경량 상품 비산 우려"},
@@ -615,17 +692,27 @@ function compute(st){
                (bell=주경종·지구경종, siren=싸이렌, pa-fire=화재시 안내방송)
    iOS 대응 : iOS Safari는 audio.volume 설정을 무시하므로 Web Audio GainNode를 거쳐
               음량을 제어한다. Web Audio를 못 쓰는 환경에서는 element.volume으로 자동 대체. */
-let soundOn=true, volume=0.45;
+let soundOn=true, volume=0.60;   /* 기본 음량 — 교육장 노트북·태블릿 스피커 기준 상향 */
 const bellAudio=document.getElementById("bellAudio");
 const sirenAudio=document.getElementById("sirenAudio");
 const paAudio=document.getElementById("paAudio");
 const paSiren=document.getElementById("paSiren");
 const MEDIA=[bellAudio,sirenAudio,paAudio,paSiren].filter(Boolean);
 
-/* 화재시 안내방송은 다른 두 방송과 구분되도록 음량을 조금 높인다 */
-const FIRE_GAIN=1.15;
+/* 음량 보정 계수 ----------------------------------------------------------
+   음원마다 정규화 레벨과 남은 피크 여유가 달라, 같은 음량 설정에서도 체감
+   크기가 다르다. 아래 계수는 각 음원의 실측값(적분 라우드니스 / 최대피크)을
+   기준으로 체감 음량을 맞추되, 음량 100%에서도 클리핑되지 않는 선으로 잡았다.
+     bell.mp3      -14.6 LUFS / peak -7.7dBFS  → ×1.35 (peak -5.1dBFS)
+     siren.mp3     -16.6 LUFS / peak -7.3dBFS  → ×1.55 (peak -3.5dBFS)
+     pa-fire.mp3   -17.1 LUFS / peak -2.1dBFS  → ×1.25 (peak -0.2dBFS, 한계)
+   특히 예비경보 단계는 주경종 하나만 단독으로 울려 체감이 크게 떨어지므로
+   경종 보정(BELL_GAIN)이 반드시 필요하다. */
+const FIRE_GAIN=1.25, BELL_GAIN=1.35, SIREN_GAIN=1.55;
 let curLoud=false;
-const gain=loud=>Math.min(1,volume*(loud?FIRE_GAIN:1));
+const gain=loud=>volume*(loud?FIRE_GAIN:1);
+const bellVol =()=>volume*BELL_GAIN;
+const sirenVol=()=>volume*SIREN_GAIN;
 
 /* --- Web Audio 라우팅 (iOS 음량 제어용) --- */
 let AC=null, webAudioOK=false;
@@ -639,7 +726,7 @@ function buildGraph(){
     MEDIA.forEach(a=>{
       const src=AC.createMediaElementSource(a);
       const g=AC.createGain();
-      g.gain.value=a===paAudio?gain(true):volume;
+      g.gain.value = a===bellAudio ? bellVol() : a===sirenAudio ? sirenVol() : gain(true);
       src.connect(g); g.connect(AC.destination);
       NODE.set(a,g);
       a.volume=1;              /* 실제 음량은 GainNode가 결정 */
@@ -647,23 +734,28 @@ function buildGraph(){
     webAudioOK=true;
   }catch(e){ webAudioOK=false; }
 }
+/* Web Audio 경로(GainNode)는 1.0 을 넘는 증폭이 가능하지만,
+   audio 엘리먼트의 volume 은 1.0 이 상한이라 넘기면 예외가 난다. */
 function setVol(a,v){
   const g=NODE.get(a);
-  if(webAudioOK&&g){ g.gain.value=v; }
-  else { try{ a.volume=v; }catch(e){} }
+  if(webAudioOK&&g){ g.gain.value=Math.min(2,v); }
+  else { try{ a.volume=Math.min(1,v); }catch(e){} }
 }
 function applyVolumes(){
-  setVol(bellAudio,volume); setVol(sirenAudio,volume);
+  setVol(bellAudio,bellVol()); setVol(sirenAudio,sirenVol());
   setVol(paAudio,gain(true)); setVol(paSiren,gain(true));
 }
-MEDIA.forEach(a=>{ try{ a.volume=volume; }catch(e){} });
+MEDIA.forEach(a=>{ try{ a.volume=Math.min(1,a===bellAudio?bellVol():a===sirenAudio?sirenVol():volume); }catch(e){} });
 
 /* --- 오디오 언락 --------------------------------------------------------
    브라우저는 사용자가 페이지를 직접 조작하기 전에는 소리 재생을 막는다.
-   슬라이더 드래그(input 이벤트)는 일부 브라우저(특히 Safari)에서 허용 제스처로
-   인정되지 않으므로, 최초의 click·touchend·keydown에서 모든 음원을 한 번씩
-   무음 재생→즉시 정지시켜 재생 권한을 미리 확보한다. */
-let unlocked=false;
+   첫 조작이 감지기 슬라이더 드래그인 경우(예비경보 15% 도달)에도 소리가
+   나야 하므로, click·touchend·keydown 뿐 아니라 pointerdown·touchstart·
+   input 까지 언락 제스처로 받는다. 언락 시점에 모든 음원을 한 번씩
+   무음 재생→즉시 정지시켜 재생 권한을 확보하고, 그 사이 차단됐던 음향은
+   retryAudio() 로 즉시 다시 송출한다. */
+const UNLOCK_EV=["pointerdown","touchstart","touchend","click","keydown","input"];
+let unlocked=false, audioBlocked=false;
 function unlockAudio(){
   if(unlocked) return; unlocked=true;
   buildGraph();
@@ -677,16 +769,35 @@ function unlockAudio(){
     else { try{a.pause();a.currentTime=0;}catch(e){} a.muted=wasMuted; }
   });
   applyVolumes();
-  ["click","touchend","keydown"].forEach(ev=>document.removeEventListener(ev,unlockAudio,true));
+  UNLOCK_EV.forEach(ev=>document.removeEventListener(ev,unlockAudio,true));
+  retryAudio();
 }
-["click","touchend","keydown"].forEach(ev=>document.addEventListener(ev,unlockAudio,true));
+UNLOCK_EV.forEach(ev=>document.addEventListener(ev,unlockAudio,true));
+
+/* 자동재생이 막혀 소리가 안 나간 경우 음향송출줄에 안내를 띄운다 */
+function markBlocked(on){
+  if(audioBlocked===on) return;
+  audioBlocked=on;
+  const w=document.getElementById("sndwarn");
+  if(w) w.hidden=!on;
+}
+/* 언락 직후, 차단됐던 음향을 현재 연동상태 기준으로 다시 송출한다 */
+function retryAudio(){
+  if(!audioBlocked) return;
+  markBlocked(false);
+  if(typeof render==="function") render();
+}
 
 /* 연동 출력에 따라 자동으로 울리는 음향 — 해당 설비에 연동정지가 걸리면 송출이 멈춘다 */
 function ring(a,on){
   if(!a) return;
   if(on&&soundOn){
     if(AC&&AC.state==="suspended") AC.resume().catch(()=>{});
-    const p=a.play(); if(p&&p.catch) p.catch(()=>{});
+    const p=a.play();
+    /* 재생 실패(자동재생 차단) 시 안내를 띄우고, 다음 조작에서 자동 재시도한다.
+       빠른 슬라이더 조작으로 pause() 가 끼어들어 생긴 AbortError 는 차단이 아니다. */
+    if(p&&p.then) p.then(()=>markBlocked(false),
+                         err=>{ if(!err||err.name!=="AbortError") markBlocked(true); });
   }else{
     try{ a.pause(); if(!on) a.currentTime=0; }catch(e){}
   }
@@ -696,6 +807,7 @@ function ring(a,on){
    녹음 파일을 쓰려면 아래에 audio/ 경로를 넣으면 그 파일이 대신 재생된다. */
 const ANNOUNCE_FILES={ nonfire:"", recover:"" };   /* 예: nonfire:"audio/pa-nonfire.mp3" */
 let extAudio=null, paActive=false, paTimer=null, paBroken=false;
+let paGen=0;          /* 비상방송 송출 세대 — paStop() 마다 증가, 이전 세대 콜백은 실행하지 않는다 */
 
 function floorKo(f){ return f[0]==="B" ? "지하 "+f.slice(1)+"층" : "지상 "+parseInt(f)+"층"; }
 function scriptText(f,d,type){
@@ -742,37 +854,59 @@ function playExtFile(src,onend,loud){
   curLoud=!!loud;
   if(!extAudio){ extAudio=new Audio(); extAudio.setAttribute("playsinline",""); }
   if(extAudio.src!==src){ extAudio.src=src; }
-  try{ extAudio.volume=gain(loud); }catch(e){}
+  try{ extAudio.volume=Math.min(1,gain(loud)); }catch(e){}
   extAudio.currentTime=0;
   extAudio.onended=onend||null;
-  const p=extAudio.play(); if(p&&p.catch) p.catch(()=>{ if(onend) onend(); });
+  const p=extAudio.play();
+  if(p&&p.catch) p.catch(err=>{ if(err&&err.name==="AbortError") return; if(onend) onend(); });
 }
 function sayScript(type,onend){
   const src=ANNOUNCE_FILES[type];
   if(src) playExtFile(src,onend,false); else speak(scriptText(st.f,st.d,type),onend,false);
 }
 /* 화재시 안내방송 — audio/pa-fire.* 를 높은 음량으로 재생.
-   파일을 못 읽으면 짧은 싸이렌 + 음성합성 낭독으로 자동 대체한다. */
+   파일을 못 읽으면 짧은 싸이렌 + 음성합성 낭독으로 자동 대체한다.
+
+   ※ 송출 세대(paGen) 검사가 반드시 필요하다.
+   감지기 슬라이더가 화재점을 스치고 예비경보 구간으로 다시 내려오면
+   paStart() 직후 paStop() 이 호출되는데, 이때 아직 대기중이던 play() 가
+   pause() 때문에 AbortError 로 거부된다. 세대 검사가 없으면 그 거부가
+   "파일 재생 불가"로 오인되어 폴백(싸이렌 + 화재 음성낭독)이 실행되고,
+   예비경보 구간인데 화재방송이 흘러나온다. paStop() 이 세대를 올려
+   이전 세대의 콜백을 모두 무효화한다. */
 function playFire(onend){
+  const gen=paGen, alive=()=>gen===paGen;
   if(!paBroken&&paAudio){
     if(AC&&AC.state==="suspended") AC.resume().catch(()=>{});
     setVol(paAudio,gain(true));
     try{ paAudio.currentTime=0; }catch(e){}
-    paAudio.onended=onend||null;
+    paAudio.onended=()=>{ if(alive()&&onend) onend(); };
     const p=paAudio.play();
-    if(p&&p.catch) p.catch(()=>{ paBroken=true; fireFallback(onend); });
+    if(p&&p.catch) p.catch(err=>{
+      if(!alive()) return;                                  /* 정지 뒤 도착한 거부 — 무시 */
+      if(err&&(err.name==="AbortError")) return;             /* pause() 로 중단된 재생 */
+      paBroken=true;                                         /* 실제 재생 불가일 때만 폴백 */
+      fireFallback(onend,gen);
+    });
     return;
   }
-  fireFallback(onend);
+  fireFallback(onend,gen);
 }
-function fireFallback(onend){
-  const go=()=>speak(scriptText(st.f,st.d,"fire"),onend,true);
+function fireFallback(onend,gen){
+  if(gen===undefined) gen=paGen;
+  const alive=()=>gen===paGen;
+  if(!alive()) return;
+  const go=()=>{ if(alive()) speak(scriptText(st.f,st.d,"fire"),onend,true); };
   if(!paSiren){ go(); return; }
   setVol(paSiren,gain(true));
   paSiren.onended=()=>{ paSiren.onended=null; go(); };
   try{ paSiren.currentTime=0; }catch(e){}
   const p=paSiren.play();
-  if(p&&p.catch) p.catch(()=>{ paSiren.onended=null; go(); });
+  if(p&&p.catch) p.catch(err=>{
+    paSiren.onended=null;
+    if(err&&err.name==="AbortError") return;
+    go();
+  });
 }
 function playAnnounce(type){
   paStop();
@@ -785,6 +919,7 @@ function paCycle(){
   playFire(()=>{ if(paActive) paTimer=setTimeout(paCycle,2600); });
 }
 function paStop(){
+  paGen++;              /* 진행중이던 송출 체인(대기중인 play·onended·폴백)을 모두 무효화 */
   paActive=false;
   if(paTimer){ clearTimeout(paTimer); paTimer=null; }
   [paAudio,paSiren].forEach(a=>{ if(a){ a.onended=null; try{a.pause();a.currentTime=0;}catch(e){} } });
@@ -804,7 +939,11 @@ function silence(){
 function syncAudio(live){
   if(!soundOn){ silence(); return; }
   const sirOn=live.indexOf("sir")>=0;
-  /* 싸이렌(유수검지장치·가스계 연동) 구동 시 지구경종도 함께 명동 */
+  /* 주경종·지구경종은 같은 음원(bellAudio) 하나를 공유한다.
+     "소방설비 연동설정"에서 주경종(mbell)·지구경종(bell) 중 하나만 연동정지해도
+     나머지 하나가 살아있으면 계속 울려야 하므로 OR 조건이며,
+     따라서 이 mp3 출력이 멈추려면 mbell·bell 둘 다 연동정지로 선택되어 있어야 한다
+     (싸이렌 연동에 따른 지구경종 동반명동은 별개 규칙이라 sirOn이면 항상 울린다). */
   ring(bellAudio,  live.indexOf("mbell")>=0 || live.indexOf("bell")>=0 || sirOn);
   ring(sirenAudio, sirOn);
   live.indexOf("pag")>=0 ? paStart() : paStop();
@@ -822,6 +961,7 @@ FLOORS.forEach(f=>{
   DONGS.forEach(d=>{
     const b=document.createElement("button");b.className="cell";b.dataset.k=f+d;
     b.setAttribute("aria-label",f+" "+d+"동");
+    b.innerHTML='<span class="shtbar" aria-hidden="true"></span>';
     b.addEventListener("click",()=>{st.f=f;st.d=d;resetInput();render();});
     r.appendChild(b);
   });
@@ -846,25 +986,114 @@ INPUTS.forEach(I=>{
   wrap.appendChild(b);
 });
 
+/* ---------- 방재실 수신기 연동정지(출력차단) 조작반 ----------
+   버튼 명칭과 배열 순서는 현장 수신기 조작반 실물 기준(행 단위로 끊어 적었다).
+   ids[] = 그 버튼 하나로 함께 잡히는 시뮬레이터 출력설비.
+   ids 가 비어 있으면 실제 수신기에는 있으나 이 시뮬레이터의 연동로직에
+   포함하지 않은 출력이며 회색으로 비활성 표시한다.
+   lock:1 = 연동정지를 걸 수 없는 설비 — 소화설비(소화펌프)는 연동정지를
+   이미 해제해 상시 정상운영 중이므로 조작 대상에서 제외한다. */
+const PANEL=[
+ [{n:"비상방송",  ids:["pag"]},
+  {n:"지구벨",    ids:["bell"],  sub:"지구경종"},
+  {n:"싸이렌",    ids:["sir"],   sub:"유수검지·가스계"},
+  {n:"프리액션",  ids:PD_GROUP,  sub:"드렌처 공통"},
+  {n:"배연창",    ids:["swin"],  sub:"3F 이상 오피스"},
+  {n:"방화문",    ids:["fdoor"]},
+  {n:"방화셧터",  ids:["sht1","sht2"], sub:"1·2차 공통"}],
+
+ [{n:"제연댐퍼",  ids:["rdmp"],  sub:"거실제연"},
+  {n:"제연급기휀",ids:["rsup"],  sub:"거실제연"},
+  {n:"제연배기휀",ids:["rexh"],  sub:"거실제연"},
+  {n:"소화설비",  ids:["pump"],  sub:"소화펌프", lock:1},
+  {n:"전실댐퍼",  ids:["vdmp"],  sub:"전실제연 급기"},
+  {n:"유도등정지",ids:["exit"],  sub:"유도등 비상점등"},
+  {n:"시각경보",  ids:["vis"],   sub:"음성점멸"}],
+
+ [{n:"가스출력",  ids:["gasrel","gasdmp"], sub:"가스계 방출"},
+  {n:"제연커텐",  ids:[]},
+  {n:"전실급기휀",ids:["vfan"],  sub:"전실제연"},
+  {n:"전실배기휀",ids:["vexh"],  sub:"전실제연"},
+  {n:"자동문",    ids:[]},
+  {n:"미사용",    ids:[]}],
+
+ [{n:"대표화재",  ids:[]},
+  {n:"미사용",    ids:[]},
+  {n:"미사용",    ids:[]},
+  {n:"공조대표화재",ids:["ahu"], sub:"AHU 정지"},
+  {n:"조명제어",  ids:[]},
+  {n:"출입통제",  ids:[]},
+  {n:"패시브휀",  ids:["pfan"],  sub:"주차장"}],
+
+ [{n:"속보기",    ids:[]},
+  {n:"에어컨정지",ids:[]},
+  {n:"엘리베이터",ids:["elev"],  sub:"기준층 리콜"},
+  {n:"미디어",    ids:[]},
+  {n:"A출력",     ids:[]},
+  {n:"B출력",     ids:[]}]
+];
+/* 조작반 우측의 별도 스위치 계통 */
+const PANEL2=[
+ [{n:"주경종",    ids:["mbell"], sub:"수신기 내장"},
+  {n:"부저",      ids:[]}]
+];
+const COLS=7;                                   /* 실물 조작반 한 행의 버튼 수 */
+/* 조작반에서 실제로 연동정지를 걸 수 있는 설비 전체(소화펌프 제외) */
+const HALTABLE=[].concat.apply([],PANEL.concat(PANEL2))
+                 .filter(b=>!b.lock)
+                 .reduce((a,b)=>a.concat(b.ids),[]);
+/* 현행(야간 1단계) = 위 LIVE_NOW 를 제외한 나머지가 모두 연동정지 상태 */
+const HALT_NOW=HALTABLE.filter(id=>LIVE_NOW.indexOf(id)<0);
+
+function panelBtn(b){
+  const real=b.ids.length>0, lock=!!b.lock;
+  const el=document.createElement("button");
+  el.type="button";
+  el.className="rbtn"+(real?"":" na")+(lock?" lock":"")+
+               (b.ids.some(x=>KEY4.includes(x))?" key":"");
+  if(real&&!lock){
+    el.dataset.ids=b.ids.join(",");
+    el.setAttribute("aria-pressed","false");
+    el.title="누르면 연동정지 · 다시 누르면 정상연동";
+  }else{
+    el.disabled=true;
+    el.title = lock ? "소화펌프는 연동정지를 해제해 상시 정상운영 중입니다 — 정지할 수 없습니다"
+                    : "실제 수신기에는 있으나 이 시뮬레이터의 연동로직에는 포함하지 않은 출력입니다";
+  }
+  el.innerHTML='<span class="rled"></span><span class="rname">'+b.n+'</span>'+
+    (b.sub?'<span class="rsub">'+b.sub+'</span>':'')+
+    '<span class="rstate">'+(lock?"상시연동":real?"연동":"미반영")+'</span>';
+  return el;
+}
+function buildPanel(el,rows){
+  rows.forEach(row=>{
+    row.forEach(b=>el.appendChild(panelBtn(b)));
+    for(let i=row.length;i<COLS;i++){            /* 실물 조작반의 빈 자리 */
+      const f=document.createElement("div"); f.className="rfill"; el.appendChild(f);
+    }
+  });
+}
 const cfg=$("#cfg");
-ALL.forEach(id=>{
-  if(id==="dren"||id==="drenz") return;              // 프리액션 버튼에 묶임
-  if(OUT[id].fixed) return;                          // 수신기 표시등 계통 — 연동정지 대상 아님
-  const l=document.createElement("label");
-  const isKey=KEY4.includes(id);
-  if(isKey) l.className="k";
-  const label = id==="preact" ? "프리액션 · 드렌처 (버튼 공통)" : OUT[id].n;
-  l.innerHTML='<input type="checkbox" data-id="'+id+'"><span>'+label+'</span>';
-  cfg.appendChild(l);
-});
-cfg.addEventListener("change",e=>{
-  if(!e.target.matches("input"))return;
-  const id=e.target.dataset.id;
-  const ids = id==="preact" ? PD_GROUP : [id];
-  /* 체크 = 연동정지를 잡는다 */
-  ids.forEach(x=> e.target.checked ? halted.add(x) : halted.delete(x));
-  setMode("custom",true);render();
-});
+buildPanel(cfg,PANEL);
+buildPanel($("#cfg2"),PANEL2);
+
+/* 버튼 하나가 여러 설비를 잡는 경우(프리액션·방화셔터·가스출력)는
+   묶인 설비가 모두 연동정지일 때만 '정지'로 표시한다. */
+function syncPanel(){
+  document.querySelectorAll(".rbtn[data-ids]").forEach(el=>{
+    const off=el.dataset.ids.split(",").every(x=>halted.has(x));
+    el.setAttribute("aria-pressed",off);
+    el.querySelector(".rstate").textContent = off?"정지":"연동";
+  });
+}
+document.querySelectorAll("#cfg,#cfg2").forEach(p=>p.addEventListener("click",e=>{
+  const el=e.target.closest(".rbtn[data-ids]");
+  if(!el||el.disabled) return;
+  const ids=el.dataset.ids.split(",");
+  const off=ids.every(x=>halted.has(x));
+  ids.forEach(x=> off ? halted.delete(x) : halted.add(x));   /* 누를 때마다 정지 ↔ 연동 */
+  setMode("custom",true);syncPanel();render();
+}));
 
 function resetInput(){
   let I=INPUTS.find(x=>x.id===st.input);
@@ -930,6 +1159,7 @@ function render(){
 
   const cells=(R.lv>0&&R.alarm)?alarmCells(st.f,st.d):[];
   const shtCells=(R.sht&&R.lv===2)?R.sht.cells:[];
+  const shtStage=(R.sht&&R.lv===2)?(R.sht.stage||1):0;
   const origin=st.f+st.d;
   document.querySelectorAll(".cell").forEach(c=>{
     c.className="cell";
@@ -937,6 +1167,14 @@ function render(){
     if(cells.includes(k)&&k!==origin) c.classList.add(R.lv===2?"alarm":"prealarm");
     if(shtCells.includes(k)) c.classList.add("sht");
     if(k===origin) c.classList.add((R.lv===2&&R.alarm)?"origin":"sel");
+    /* 방화셔터 하강 표시 — 1차(부분)는 중간까지, 2차(완전폐쇄)는 끝까지 채워
+       내려온다. 대상에서 빠지면 0%로 되돌아가 셔터가 열려 있음을 보여준다. */
+    const bar=c.querySelector(".shtbar");
+    if(bar){
+      const on=shtCells.includes(k);
+      bar.style.height = on ? (shtStage===2 ? "100%" : "52%") : "0%";
+      if(on) bar.dataset.stage=shtStage; else delete bar.dataset.stage;
+    }
   });
 
   let sc = R.alarm ? "경보 출력범위: <b>"+scopeText(st.f,st.d)+"</b>"
@@ -954,7 +1192,7 @@ function render(){
   }else{
     R.list.forEach((o,i)=>{
       const D=OUT[o.id];
-      const isHalted=halted.has(o.id)&&!D.fixed;
+      const isHalted=halted.has(o.id)&&!D.fixed&&!D.always;   /* 소화펌프는 상시 정상연동 */
       const li=document.createElement("li");
       li.classList.add(isHalted?"off":"on");
       if(KEY4.includes(o.id)) li.classList.add("key4");
@@ -976,10 +1214,12 @@ function render(){
 function setMode(m,silent){
   document.querySelectorAll(".modes button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mode===m));
   if(!silent){
-    if(m==="normal") halted=new Set();
-    if(m==="night")  halted=new Set(HALT_NIGHT);
+    if(m==="now")    halted=new Set(HALT_NOW);   /* 1단계 — 수신기 현재 상태(야간) */
+    if(m==="night2") halted=new Set(HALT_4);     /* 2단계 — 야간 확대, 4대설비만 정지 */
+    if(m==="day")    halted=new Set(HALT_4);     /* 3단계 — 같은 구성을 주간 영업시간까지 확대 */
+    if(m==="normal") halted=new Set();           /* 4단계 — 전 설비 정상화 */
   }
-  document.querySelectorAll("#cfg input").forEach(i=>i.checked=halted.has(i.dataset.id));
+  syncPanel();
 }
 document.querySelectorAll(".modes button").forEach(b=>b.addEventListener("click",()=>{setMode(b.dataset.mode);render();}));
 
@@ -995,14 +1235,14 @@ $("#sndBtn").addEventListener("click",()=>{
 $("#vol").addEventListener("input",e=>{
   volume=(+e.target.value)/100;
   applyVolumes();
-  if(extAudio){ try{ extAudio.volume=gain(curLoud); }catch(err){} }
+  if(extAudio){ try{ extAudio.volume=Math.min(1,gain(curLoud)); }catch(err){} }
 });
 $("#broadcastBtn").addEventListener("click",()=>{
   if(!soundOn) return;
   playAnnounce($("#script").value);
 });
 $("#stopSnd").addEventListener("click",silence);
-/* 복구 — 수신기 화재신호를 화재발생 전 평상시 감시상태로 초기화 (연동정지 설정은 유지) */
+/* 복구 — 수신기 화재신호를 화재발생 전 평상시 감시상태로 초기화 (소방설비 연동설정은 유지) */
 $("#recoverBtn").addEventListener("click",()=>{silence();resetInput();render();});
 
 function stop(){if(timer){clearInterval(timer);timer=null;}const p=$("#play");if(p){p.disabled=false;p.textContent="순차 재생";}}
